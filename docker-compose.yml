@@ -8,24 +8,24 @@
 # Setup in Prowlarr:
 #   1. Settings → Indexers → Add "HTTP Proxy"
 #      - Name: NewznabRewritarr
-#      - Host: newznab-rewritarr
+#      - Host: newznabrewritarr
 #      - Port: 5008
-#      - Tag: newznab-rewritarr
-#   2. On each indexer: add tag "newznab-rewritarr", set URL to http://
+#      - Tag: newznabrewritarr
+#   2. On each indexer: add tag "newznabrewritarr", set URL to http://
 #
 # If you also use UmlautAdaptarr:
 #   Set UPSTREAM_PROXY=umlautadaptarr:5006 (already set below).
 #   This chains both proxies automatically. You only need the
-#   "newznab-rewritarr" tag in Prowlarr — NOT the umlautadaptarr tag.
+#   "newznabrewritarr" tag in Prowlarr — NOT the umlautadaptarr tag.
 # ──────────────────────────────────────────────────────────────────────────────
 
 version: '3.8'
 
 services:
-  newznab-rewritarr:
+  newznabrewritarr:
     build: .
-    # image: newznab-rewritarr  # uncomment after publishing to a registry
-    container_name: newznab-rewritarr
+    # image: newznabrewritarr  # uncomment after publishing to a registry
+    container_name: newznabrewritarr
     restart: unless-stopped
     ports:
       - "5008:5008"
