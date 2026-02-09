@@ -1,63 +1,64 @@
 # NewznabRewritarr
 
-> Newznab Attribute Title Rewrite Proxy für Prowlarr / Lidarr / Readarr
+> Newznab Attribute Title Rewrite Proxy for Prowlarr / Lidarr / Readarr
 
-**NewznabRewritarr** löst das Problem, dass Lidarr und Readarr nur das `<title>`-Feld aus Newznab-API-Antworten parsen und die `newznab:attr`-Metadaten (artist, album, author, booktitle, track, …) komplett ignorieren.  
+**NewznabRewritarr** solves the problem that Lidarr and Readarr only parse the `<title>` field from Newznab API responses and completely ignore the `newznab:attr` metadata (artist, album, author, booktitle, track, …).
 
-Wenn der Indexer schlecht benannte Titel liefert, aber korrekte Metadaten in den `newznab:attr`-Attributen hat, baut NewznabRewritarr den Titel aus diesen Attributen neu zusammen — so dass die \*arrs ihn korrekt parsen können.
+If an indexer returns poorly formatted titles but provides correct metadata in `newznab:attr` attributes, NewznabRewritarr rebuilds the title from those attributes so the *arr apps can parse it correctly.
 
 ---
 
-## Das Problem
+## The Problem
 
 ```
-# Indexer liefert diesen Titel:
-Beispiel-Firma GmbH-Cybercast-Folge 19: Securing an Austrian Silicon Fab-FLAC-2017
+# Indexer returns this title:
+Example-Company GmbH-Cybercast-Episode 19: Securing an Austrian Silicon Fab-FLAC-2017
 
-# Lidarr versucht zu parsen:
-ParsingService|Trying inexact company match for "Beispiel"
-ParsingService|No matching company "Beispiel"
-→ Release wird rejected!
+# Lidarr tries to parse:
+ParsingService|Trying inexact company match for "Example"
+ParsingService|No matching company "Example"
+→ Release is rejected!
 
-# Aber die newznab:attr enthalten alle korrekten Infos:
+# But the newznab:attr contain all the correct info:
 <newznab:attr name="artist" value="Tatjana Schaumberger"/>
 <newznab:attr name="album" value="Cybercast"/>
-<newznab:attr name="track" value="Folge 19: Securing an Austrian Silicon Fab"/>
+<newznab:attr name="track" value="Episode 19: Securing an Austrian Silicon Fab"/>
 ```
 
-## Die Lösung
+## The Solution
 
-NewznabRewritarr schaltet sich als HTTP-Proxy zwischen Prowlarr und den Indexer und schreibt den Titel anhand der Attribute um:
+NewznabRewritarr inserts itself as an HTTP proxy between Prowlarr and the indexer and rewrites the title based on the attributes:
 
 ```
-# Vorher (vom Indexer):
-Beispiel-Firma GmbH-Cybercast-Folge 19: Securing an Austrian Silicon Fab-FLAC-2017
+# Before (from the indexer):
+Example-Company GmbH-Cybercast-Episode 19: Securing an Austrian Silicon Fab-FLAC-2017
 
-# Nachher (von NewznabRewritarr):
-Tatjana Schaumberger-Cybercast-Folge 19: Securing an Austrian Silicon Fab-FLAC-2017
-                                         ↑ Lidarr erkennt jetzt Artist + Album korrekt!
+# After (from NewznabRewritarr):
+Tatjana Schaumberger-Cybercast-Episode 19: Securing an Austrian Silicon Fab-FLAC-2017
+                                      ↑ Lidarr now recognizes Artist + Album correctly!
 ```
 
-Für **Bücher** (Readarr):
+For **books** (Readarr):
+
 ```
-# Vorher: Cybersecurity Report in automotive Industry
-# Nachher: Max Mustermann - Cybersecurity Report in Automotive Industry (2025)
+# Before: Cybersecurity Report in automotive Industry
+# After:  Max Mustermann - Cybersecurity Report in Automotive Industry (2025)
 ```
 
 ---
 
 ## Features
 
-| Feature | Status |
-|---|---|
-| Prowlarr HTTP-Proxy-Integration (Tag-basiert) | ✅ |
-| Lidarr: Musik-Titel aus newznab:attr | ✅ |
-| Readarr: Buch-Titel aus newznab:attr | ✅ |
-| Readarr: Hörbuch-Titel aus newznab:attr | ✅ |
-| Verkettung mit UmlautAdaptarr | ✅ |
-| Qualitäts-Erkennung (FLAC, MP3, EPUB, …) | ✅ |
-| Zero-Config Docker Compose | ✅ |
-| Newznab + Torznab Support | ✅ |
+| Feature                                              | Status |
+| ---------------------------------------------------- | ------ |
+| Prowlarr HTTP proxy integration (tag-based)          | ✅      |
+| Lidarr: music title rewriting from newznab:attr      | ✅      |
+| Readarr: book title rewriting from newznab:attr      | ✅      |
+| Readarr: audiobook title rewriting from newznab:attr | ✅      |
+| Chaining with UmlautAdaptarr                         | ✅      |
+| Quality detection (FLAC, MP3, EPUB, …)               | ✅      |
+| Zero-config Docker Compose                           | ✅      |
+| Newznab support                                      | ✅      |
 
 ---
 
@@ -67,25 +68,25 @@ Für **Bücher** (Readarr):
 
 ```yaml
 services:
-  newznab-rewritarr:
-    build: .
-    container_name: newznab-rewritarr
+  newznabrewritarr:
+    build: . # Folder path to the Dockerfile
+    container_name: newznabrewritarr
     restart: unless-stopped
     ports:
       - "5008:5008"
     environment:
       - TZ=Europe/Berlin
       - PROXY_PORT=5008
-      # Verkettung mit UmlautAdaptarr (optional):
+      # Chaining with UmlautAdaptarr (optional):
       - UPSTREAM_PROXY=umlautadaptarr:5006
-      # Feature Toggles:
+      # Feature toggles:
       - REWRITE_MUSIC=true
       - REWRITE_BOOKS=true
       - REWRITE_AUDIOBOOKS=true
       - LOG_LEVEL=INFO
 ```
 
-### Ohne Docker
+### Without Docker
 
 ```bash
 pip install requests
@@ -94,46 +95,46 @@ python newznab_rewritarr.py
 
 ---
 
-## Konfiguration in Prowlarr
+## Configuration in Prowlarr
 
-### Schritt 1: HTTP-Proxy anlegen
+### Step 1: Create an HTTP proxy entry
 
 In Prowlarr: **Settings → Indexers → ➕ Add (HTTP Proxy)**
 
-| Feld | Wert |
-|---|---|
-| Name | `NewznabRewritarr` |
-| Host | `newznab-rewritarr` (oder Container-IP) |
-| Port | `5008` |
-| Tag | `newznab-rewritarr` |
-| Username | *(leer lassen)* |
-| Password | *(leer lassen)* |
+| Field    | Value                                |
+| -------- | ------------------------------------ |
+| Name     | `NewznabRewritarr`                   |
+| Host     | `newznabrewritarr` (or container IP) |
+| Port     | `5008`                               |
+| Tag      | `newznabrewritarr`                   |
+| Username | *(leave empty)*                      |
+| Password | *(leave empty)*                      |
 
-### Schritt 2: Tag an Indexer zuweisen
+### Step 2: Assign the tag to indexers
 
-Für jeden Indexer, bei dem die Titel umgeschrieben werden sollen:
+For each indexer where titles should be rewritten:
 
-1. Indexer bearbeiten
-2. Tag `newznab-rewritarr` hinzufügen
-3. **Wichtig:** URL von `https://` auf `http://` ändern (nötig damit der Proxy den Traffic lesen kann)
-4. Speichern
+1. Edit the indexer
+2. Add the tag `newznabrewritarr`
+3. **Important:** Change the URL from `https://` to `http://` (required so the proxy can read the traffic)
+4. Save
 
-### Schritt 3: Testen
+### Step 3: Test
 
-1. "Test All Indexers" klicken
-2. In den NewznabRewritarr-Logs sollte der Traffic sichtbar sein
-3. Eine Suche in Lidarr/Readarr durchführen und die umgeschriebenen Titel prüfen
+1. Click “Test All Indexers”
+2. In the NewznabRewritarr logs you should see traffic
+3. Run a search in Lidarr/Readarr and verify the rewritten titles
 
 ---
 
-## Verkettung mit UmlautAdaptarr
+## Chaining with UmlautAdaptarr
 
-NewznabRewritarr lässt sich nahtlos mit UmlautAdaptarr verketten. Der Request-Flow sieht dann so aus:
+NewznabRewritarr can be seamlessly chained with UmlautAdaptarr. The request flow looks like this:
 
 ```
 Prowlarr
   │
-  ├─ HTTP Proxy Tag: "newznab-rewritarr"
+  ├─ HTTP proxy tag: "newznabrewritarr"
   │
   ▼
 NewznabRewritarr (:5008)
@@ -146,147 +147,131 @@ UmlautAdaptarr (:5006)
   ▼
 Indexer (http://)
   │
-  ▼ (Response fließt zurück)
+  ▼ (response flows back)
   │
-UmlautAdaptarr  ← Umlaut-Korrekturen, deutsche Titel
+UmlautAdaptarr   ← umlaut fixes, German titles
   │
-NewznabRewritarr ← newznab:attr Title-Rewrite
+NewznabRewritarr  ← newznab:attr title rewrite
   │
-Prowlarr → Lidarr/Readarr ← korrekter Titel!
+Prowlarr → Lidarr/Readarr ← correct title!
 ```
 
-### Setup für die Verkettung:
+### Setup for chaining
 
 1. **NewznabRewritarr** `docker-compose.yml`:
+
    ```yaml
    environment:
      - UPSTREAM_PROXY=umlautadaptarr:5006
    ```
 
 2. In **Prowlarr**:
-   - **Nur** den Tag `newznab-rewritarr` verwenden (nicht `umlautadaptarr`)
-   - Der UmlautAdaptarr-Proxy-Eintrag kann bestehen bleiben, wird aber nicht mehr per Tag zugewiesen
-   - Indexer-URLs auf `http://` setzen
 
-3. **UmlautAdaptarr** bleibt unverändert konfiguriert (Sonarr/Lidarr/Readarr API-Keys, etc.)
+   * Use **only** the tag `newznabrewritarr` (not `umlautadaptarr`)
+   * The UmlautAdaptarr proxy entry may remain, but should no longer be assigned via tags
+   * Set indexer URLs to `http://`
 
-> **Hinweis:** Wenn du UmlautAdaptarr nicht brauchst, einfach `UPSTREAM_PROXY` leer lassen oder entfernen. NewznabRewritarr funktioniert auch standalone.
+3. **UmlautAdaptarr** remains configured as before (Sonarr/Lidarr/Readarr API keys, etc.)
 
----
-
-## Umgebungsvariablen
-
-| Variable | Default | Beschreibung |
-|---|---|---|
-| `PROXY_PORT` | `5008` | Port für den HTTP-Proxy |
-| `UPSTREAM_PROXY` | *(leer)* | Upstream-Proxy, z.B. `umlautadaptarr:5006` |
-| `REWRITE_MUSIC` | `true` | Musik-Titel umschreiben (Lidarr, Kategorie 3000+) |
-| `REWRITE_BOOKS` | `true` | Buch-Titel umschreiben (Readarr, Kategorie 7000+) |
-| `REWRITE_AUDIOBOOKS` | `true` | Hörbuch-Titel umschreiben (Kategorie 3030) |
-| `BEST_EFFORT` | `true` | Auch bei unvollständigen Attributen umschreiben |
-| `DEBUG_ATTRS` | `false` | Original-Titel als `newznab:attr` speichern |
-| `LOG_LEVEL` | `INFO` | Log-Level: DEBUG, INFO, WARNING, ERROR |
+> **Note:** If you don’t need UmlautAdaptarr, just leave `UPSTREAM_PROXY` empty or remove it. NewznabRewritarr also works standalone.
 
 ---
 
-## Unterstützte newznab:attr Attribute
+## Environment variables
 
-### Musik (Lidarr)
-| Attribut | Verwendung |
-|---|---|
-| `artist` | → Artist-Feld im Titel |
-| `album` | → Album-Feld im Titel |
-| `track` | → Track-Info im Titel |
-| `year` | → Jahr im Titel |
-| *(Quality aus Original-Titel)* | → FLAC, MP3, etc. |
-
-### Bücher (Readarr)
-| Attribut | Verwendung |
-|---|---|
-| `author` | → Author-Feld im Titel |
-| `booktitle` / `title` | → Buchtitel |
-| `year` | → Jahr in Klammern |
-| *(Format aus Original-Titel)* | → EPUB, PDF, etc. |
-
-### Hörbücher (Readarr)
-| Attribut | Verwendung |
-|---|---|
-| `author` / `artist` | → Author-Feld |
-| `album` / `booktitle` | → Titel |
-| `track` | → Zusatzinfo (Kapitel, Folge) |
-| `year` | → Jahr |
-
-Vollständige Newznab-Attribut-Spezifikation: https://inhies.github.io/Newznab-API/attributes/
+| Variable             | Default   | Description                                   |
+| -------------------- | --------- | --------------------------------------------- |
+| `PROXY_PORT`         | `5008`    | Port for the HTTP proxy                       |
+| `UPSTREAM_PROXY`     | *(empty)* | Upstream proxy, e.g. `umlautadaptarr:5006`    |
+| `REWRITE_MUSIC`      | `true`    | Rewrite music titles (Lidarr, category 3000+) |
+| `REWRITE_BOOKS`      | `true`    | Rewrite book titles (Readarr, category 7000+) |
+| `REWRITE_AUDIOBOOKS` | `true`    | Rewrite audiobook titles (category 3030)      |
+| `BEST_EFFORT`        | `true`    | Rewrite even with incomplete attributes       |
+| `DEBUG_ATTRS`        | `false`   | Store the original title as a `newznab:attr`  |
+| `LOG_LEVEL`          | `INFO`    | Log level: DEBUG, INFO, WARNING, ERROR        |
 
 ---
 
-## Titel-Rewrite Beispiele
+## Supported newznab:attr attributes
 
-### Musik (Lidarr)
-```
-VORHER:  Beispiel-Firma GmbH-Cybercast-Folge 19: Securing an Austrian Silicon Fab-FLAC-2017
-NACHHER: Tatjana Schaumberger-Cybercast-Folge 19: Securing an Austrian Silicon Fab-FLAC-2017
+### Music (Lidarr)
 
-VORHER:  Bad-Title-Music-FLAC-2020
-NACHHER: Die Toten Hosen-Alles ohne Strom-FLAC-2020
-```
+| Attribute                       | Usage                   |
+| ------------------------------- | ----------------------- |
+| `artist`                        | → artist field in title |
+| `album`                         | → album field in title  |
+| `track`                         | → track info in title   |
+| `year`                          | → year in title         |
+| `audio` or title or category    | → FLAC, MP3, etc.       |
 
-### Bücher (Readarr)
-```
-VORHER:  Cybersecurity Report in automotive Industry
-NACHHER: Max Mustermann - Cybersecurity Report in Automotive Industry (2025)
+### Books (Readarr)
 
-VORHER:  Some-Publisher-BookTitle-EPUB
-NACHHER: Friedrich Dürrenmatt - Der Besuch der alten Dame (1956) EPUB
-```
+| Attribute                      | Usage                   |
+| ------------------------------ | ----------------------- |
+| `author`                       | → author field in title |
+| `booktitle` / `title`          | → book title            |
+| `year`                         | → year in parentheses   |
+| *(format from original title)* | → EPUB, PDF, etc.       |
 
-### Hörbücher
-```
-VORHER:  SomeBadTitle-Verlag-Mein Buch-2024
-NACHHER: Anna Schmidt - Das große Abenteuer Kapitel 1-20 (2024)
-```
+### Audiobooks (Readarr)
+
+| Attribute             | Usage                                |
+| --------------------- | ------------------------------------ |
+| `author` / `artist`   | → author field                       |
+| `album` / `booktitle` | → title                              |
+| `track`               | → additional info (chapter, episode) |
+| `year`                | → year                               |
+
+Full Newznab attribute specification: [https://inhies.github.io/Newznab-API/attributes/](https://inhies.github.io/Newznab-API/attributes/)
 
 ---
 
-## Tests
+## Title rewrite examples
 
-```bash
-python test_rewrite.py
-```
+### Music (Lidarr)
 
 ```
-🧪 test_music_rewrite_user_example:
-  Music rewrite: 'Tatjana Schaumberger-Cybercast-Folge 19: ...-FLAC-2017'
-  ✅ Music rewrite OK
+BEFORE: Example-Company GmbH-Cybercast-Episode 19: Securing an Austrian Silicon Fab-FLAC-2017
+AFTER:  Tatjana Schaumberger-Cybercast-Episode 19: Securing an Austrian Silicon Fab-FLAC-2017
 
-🧪 test_book_rewrite:
-  Book rewrite: 'Max Mustermann - Cybersecurity Report in Automotive Industry (2025)'
-  ✅ Book rewrite OK
+BEFORE: Bad-Title-Music-2020
+AFTER:  Die Toten Hosen-Alles ohne Strom-FLAC-2020
+```
 
-🎉 All tests passed!
+### Books (Readarr)
+
+```
+BEFORE: Some-Publisher-BookTitle-EPUB
+AFTER:  Friedrich Dürrenmatt - The Visit (1956) EPUB
+```
+
+### Audiobooks
+
+```
+BEFORE: SomeBadTitle-Publisher-My Book-2024
+AFTER:  Anna Schmidt - The Great Adventure Chapter 1-20 (2024)
 ```
 
 ---
 
 ## Troubleshooting
 
-### Titel werden nicht umgeschrieben
-1. Prüfe ob der Indexer in Prowlarr auf `http://` (nicht `https://`) steht
-2. Prüfe ob der Tag `newznab-rewritarr` am Indexer zugewiesen ist
-3. Setze `LOG_LEVEL=DEBUG` und prüfe die Container-Logs
-4. Prüfe ob der Indexer überhaupt `newznab:attr` liefert (Prowlarr API-Link testen)
+### Titles are not being rewritten
 
-### UmlautAdaptarr-Verkettung funktioniert nicht
-1. Prüfe ob beide Container im gleichen Docker-Netzwerk sind
-2. Prüfe ob `UPSTREAM_PROXY=umlautadaptarr:5006` korrekt gesetzt ist
-3. In Prowlarr: **Nur** den `newznab-rewritarr` Tag verwenden, nicht beide Tags
+1. Verify the indexer in Prowlarr is set to `http://` (not `https://`)
+2. Verify the tag `newznabrewritarr` is assigned to the indexer
+3. Set `LOG_LEVEL=DEBUG` and check the container logs
+4. Verify the indexer actually returns `newznab:attr` (test the Prowlarr API endpoint)
 
-### Lidarr/Readarr rejected weiterhin
-- Prüfe die Lidarr/Readarr-Logs: wird der umgeschriebene Titel jetzt korrekt geparst?
-- `DEBUG_ATTRS=true` setzen und in der API-Antwort den `original_title` Attribut prüfen
+### UmlautAdaptarr chaining does not work
+
+1. Verify both containers are in the same Docker network
+2. Verify `UPSTREAM_PROXY=umlautadaptarr:5006` is set correctly
+3. In Prowlarr: use **only** the `newznabrewritarr` tag, not both tags
+
+### Lidarr/Readarr still rejects releases
+
+* Check Lidarr/Readarr logs: is the rewritten title parsed correctly now?
+* Set `DEBUG_ATTRS=true` and verify the `original_title` attribute in the API response
 
 ---
-
-## Lizenz
-
-MIT
