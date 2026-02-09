@@ -661,9 +661,9 @@ def main():
 
     log.info(f"HTTP proxy listening on 0.0.0.0:{PROXY_PORT}")
     log.info("Configure in Prowlarr: Settings → Indexers → Add HTTP Proxy")
-    log.info(f"  Host: newznab-rewritarr (or container IP)")
+    log.info(f"  Host: newznabrewritarr (or container IP)")
     log.info(f"  Port: {PROXY_PORT}")
-    log.info(f"  Tag:  newznab-rewritarr")
+    log.info(f"  Tag:  newznabrewritarr")
     log.info(f"Then assign the tag to your indexers (set URL to http://)")
 
     try:
